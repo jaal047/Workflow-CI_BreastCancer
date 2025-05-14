@@ -55,5 +55,5 @@ jobs:
       with:
         name: breast-cancer-model-artifacts
         path: |
-          MLProject/models/model.pkl
-          MLProject/models/metrics.json
+          MLProject/artifact/model.pkl
+          MLProject/artifact/metrics.json

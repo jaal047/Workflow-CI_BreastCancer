@@ -51,11 +51,11 @@ with mlflow.start_run():
     mlflow.log_metric("F1 Score", f1)
     mlflow.log_metric("ROC AUC", roc_auc)
 
-    if os.path.exists("MLProject/models"):
-        if not os.path.isdir("MLProject/models"):
-            print("⚠️ 'models' is not a directory, deleting it...")
-            os.remove("MLProject/models")
-    os.makedirs("MLProject/models", exist_ok=True)
+    if os.path.exists("MLProject/artifact"):
+        if not os.path.isdir("MLProject/artifact"):
+            print("⚠️ 'artifact' is not a directory, deleting it...")
+            os.remove("MLProject/artifact")
+    os.makedirs("MLProject/artifact", exist_ok=True)
 
     metrics = {
         "Accuracy": accuracy,
@@ -64,14 +64,14 @@ with mlflow.start_run():
         "F1 Score": f1,
         "ROC AUC": roc_auc
     }
-    with open("MLProject/models/metrics.json", "w") as outfile:
+    with open("MLProject/artifact/metrics.json", "w") as outfile:
         json.dump(metrics, outfile)
 
     # Log artefak ke MLflow
-    mlflow.log_artifact("MLProject/models/metrics.json")
+    mlflow.log_artifact("MLProject/artifact/metrics.json")
 
     # ================================
     # Save model
-    model_path = "MLProject/models/model.pkl"
+    model_path = "MLProject/artifact/model.pkl"
     joblib.dump(model, model_path)
     mlflow.log_artifact(model_path)
