@@ -33,7 +33,14 @@ with mlflow.start_run():
     precision = precision_score(y_test, predictions, average='weighted')
     recall = recall_score(y_test, predictions, average='weighted')
     f1 = f1_score(y_test, predictions, average='weighted')
-    roc_auc = roc_auc_score(y_test, model.predict_proba(X_test), multi_class='ovr')
+    # Cek apakah data biner atau multi-class
+    if len(set(y_test)) == 2:  
+        # Biner, ambil kolom kedua (probabilitas kelas 1)
+        roc_auc = roc_auc_score(y_test, model.predict_proba(X_test)[:, 1])
+    else:
+        # Multi-class, gunakan multi_class='ovr'
+        roc_auc = roc_auc_score(y_test, model.predict_proba(X_test), multi_class='ovr')
+
 
     # Log parameters and metrics
     mlflow.log_param("n_estimators", args.n_estimators)
