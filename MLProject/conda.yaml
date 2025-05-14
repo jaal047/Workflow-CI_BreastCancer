@@ -1,0 +1,14 @@
+name: breast_cancer_env
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - scikit-learn
+  - pandas
+  - matplotlib
+  - seaborn
+  - joblib
+  - pip:
+      - mlflow
+      - python-dotenv
