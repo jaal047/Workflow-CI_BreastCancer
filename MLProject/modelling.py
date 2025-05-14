@@ -51,6 +51,22 @@ with mlflow.start_run():
     mlflow.log_metric("F1 Score", f1)
     mlflow.log_metric("ROC AUC", roc_auc)
 
+    # Save metrics to JSON
+    metrics = {
+        "Accuracy": accuracy,
+        "Precision": precision,
+        "Recall": recall,
+        "F1 Score": f1,
+        "ROC AUC": roc_auc
+    }
+
+    # Simpan di folder yang diinginkan
+    with open("MLProject/metrics.json", "w") as outfile:
+        json.dump(metrics, outfile)
+
+    # Log artefak ke MLflow
+    mlflow.log_artifact("MLProject/metrics.json")
+
     # Save model
     joblib.dump(model, "model.pkl")
     mlflow.log_artifact("model.pkl")
