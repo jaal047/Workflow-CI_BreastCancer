@@ -54,6 +54,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: breast-cancer-model-artifacts
-        path: |
-          MLProject/artifact/model.pkl
-          MLProject/artifact/metrics.json
+        path: MLProject/models
