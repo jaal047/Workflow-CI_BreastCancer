@@ -51,7 +51,12 @@ with mlflow.start_run():
     mlflow.log_metric("F1 Score", f1)
     mlflow.log_metric("ROC AUC", roc_auc)
 
+    if os.path.exists("MLProject/models"):
+        if not os.path.isdir("MLProject/models"):
+            print("⚠️ 'models' is not a directory, deleting it...")
+            os.remove("MLProject/models")
     os.makedirs("MLProject/models", exist_ok=True)
+
     metrics = {
         "Accuracy": accuracy,
         "Precision": precision,
