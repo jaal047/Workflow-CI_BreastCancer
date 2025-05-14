@@ -33,6 +33,7 @@ with mlflow.start_run():
     precision = precision_score(y_test, predictions, average='weighted')
     recall = recall_score(y_test, predictions, average='weighted')
     f1 = f1_score(y_test, predictions, average='weighted')
+
     # Cek apakah data biner atau multi-class
     if len(set(y_test)) == 2:  
         # Biner, ambil kolom kedua (probabilitas kelas 1)
@@ -40,7 +41,6 @@ with mlflow.start_run():
     else:
         # Multi-class, gunakan multi_class='ovr'
         roc_auc = roc_auc_score(y_test, model.predict_proba(X_test), multi_class='ovr')
-
 
     # Log parameters and metrics
     mlflow.log_param("n_estimators", args.n_estimators)
@@ -51,7 +51,7 @@ with mlflow.start_run():
     mlflow.log_metric("F1 Score", f1)
     mlflow.log_metric("ROC AUC", roc_auc)
 
-    # Save metrics to JSON
+    os.makedirs("MLProject/models", exist_ok=True)
     metrics = {
         "Accuracy": accuracy,
         "Precision": precision,
@@ -59,14 +59,14 @@ with mlflow.start_run():
         "F1 Score": f1,
         "ROC AUC": roc_auc
     }
-
-    # Simpan di folder yang diinginkan
-    with open("MLProject/metrics.json", "w") as outfile:
+    with open("MLProject/models/metrics.json", "w") as outfile:
         json.dump(metrics, outfile)
 
     # Log artefak ke MLflow
-    mlflow.log_artifact("MLProject/metrics.json")
+    mlflow.log_artifact("MLProject/models/metrics.json")
 
+    # ================================
     # Save model
-    joblib.dump(model, "model.pkl")
-    mlflow.log_artifact("model.pkl")
+    model_path = "MLProject/models/model.pkl"
+    joblib.dump(model, model_path)
+    mlflow.log_artifact(model_path)
