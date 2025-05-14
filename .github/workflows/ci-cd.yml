@@ -51,7 +51,7 @@ jobs:
         docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-model:latest
 
     - name: Upload Model Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: breast-cancer-model-artifacts
         path: MLProject/models
