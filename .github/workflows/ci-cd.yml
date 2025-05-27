@@ -25,9 +25,10 @@ jobs:
         environment-file: MLProject/conda.yaml
         activate-environment: breast_cancer_env
 
-    - name: Install additional dependencies
+    - name: Install dependencies
       run: |
-        pip install mlflow dagshub
+        pip install --upgrade mlflow
+        pip install dagshub
 
     - name: Run MLflow Project
       working-directory: ./MLProject
