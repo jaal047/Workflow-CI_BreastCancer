@@ -37,7 +37,7 @@ jobs:
         MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
-        python modelling.py
+        mlflow run . -P n_estimators=100 -P max_depth=10 -P X_train=BreastCancer_preprocessing/X_train.csv -P X_test= BreastCancer_preprocessing/X_test.csv -P y_train= BreastCancer_preprocessing/y_train.csv -P y_test= BreastCancer_preprocessing/y_test.csv
 
     - name: Build Docker Image
       run: docker build -t breast-cancer-model:latest ./MLProject
