@@ -25,19 +25,18 @@ jobs:
         environment-file: MLProject/conda.yaml
         activate-environment: breast_cancer_env
 
-    - name: Install dependencies
+    - name: Install additional dependencies
       run: |
-        pip install mlflow
-        pip install dagshub
+        pip install mlflow dagshub
 
-    - name: Run Modelling Script
+    - name: Run MLflow Project
       working-directory: ./MLProject
       env:
         MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
         MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
-        mlflow run . -P n_estimators=100 -P max_depth=10 -P X_train=BreastCancer_preprocessing/X_train.csv -P X_test= BreastCancer_preprocessing/X_test.csv -P y_train= BreastCancer_preprocessing/y_train.csv -P y_test= BreastCancer_preprocessing/y_test.csv
+        mlflow run . -P n_estimators=100 -P max_depth=10
 
     - name: Build Docker Image
       run: docker build -t breast-cancer-model:latest ./MLProject
@@ -54,4 +53,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: breast-cancer-model-artifacts
-        path: MLProject/model.pkl
+        path: |
+          MLProject/artifacts/*
