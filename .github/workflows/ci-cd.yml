@@ -49,6 +49,9 @@ jobs:
           --port 5000 > mlflow_server.log 2>&1 &
         echo "MLflow server started"
 
+    - name: Verify MLflow Version
+      run: mlflow --version
+
     - name: Train Model using MLflow Project
       working-directory: ./MLProject
       shell: bash -l {0}
@@ -58,7 +61,7 @@ jobs:
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
         mlflow run . -P n_estimators=150 -P max_depth=12
-        LATEST_RUN_ID=$(mlflow runs list --experiment-id 1 --output-format json | jq -r 'sort_by(.start_time) | last | .run_id')
+        LATEST_RUN_ID=$(mlflow runs list --experiment-id 1 | awk 'END{print $1}')
         if [ -z "$LATEST_RUN_ID" ]; then
           echo "No runs found. Exiting..."
           exit 1
