@@ -37,6 +37,7 @@ jobs:
       shell: bash -l {0}
       run: |
         pip install mlflow dagshub jq
+        mlflow --version || { echo "MLflow installation failed"; exit 1; }
 
     - name: Start MLflow Tracking Server
       working-directory: ./MLProject
@@ -48,9 +49,6 @@ jobs:
           --host 0.0.0.0 \
           --port 5000 > mlflow_server.log 2>&1 &
         echo "MLflow server started"
-
-    - name: Verify MLflow Version
-      run: mlflow --version
 
     - name: Train Model using MLflow Project
       working-directory: ./MLProject
