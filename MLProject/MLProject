@@ -9,3 +9,11 @@ entry_points:
       max_depth: {type: int, default: 10}
     command: >
       python modelling.py --n_estimators {n_estimators} --max_depth {max_depth}
+  
+  serve:
+    command: >
+      mlflow models serve -m models:/BreastCancer_RF_Model/latest -h 0.0.0.0 -p 5000
+  
+  build_docker:
+    command: >
+      mlflow models build-docker -m models:/BreastCancer_RF_Model/latest -n breast-cancer-mlflow

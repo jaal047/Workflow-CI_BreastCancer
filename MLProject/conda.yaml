@@ -1,14 +1,19 @@
 name: breast_cancer_env
 channels:
+  - conda-forge
   - defaults
 dependencies:
   - python=3.10
-  - pip
   - scikit-learn
   - pandas
   - matplotlib
   - seaborn
   - joblib
+  - prometheus_client
+  - python-dotenv
+  - flask
+  - requests
+  - pip
   - pip:
-      - mlflow
-      - python-dotenv
+    - mlflow>=2.0.0
+    - dagshub
