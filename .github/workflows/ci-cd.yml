@@ -28,7 +28,6 @@ jobs:
     - name: Install MLflow and dependencies
       shell: bash -l {0}
       run: |
-        # Tidak perlu lagi "conda activate", karena sudah otomatis aktif
         pip install mlflow dagshub jq
 
     - name: Train Model using MLflow Project
@@ -42,21 +41,27 @@ jobs:
         mlflow run . -P n_estimators=150 -P max_depth=12
         echo "LATEST_RUN_ID=$(mlflow runs list --experiment-name BreastCancer_RF_Model --max-results 1 --order-by start_time DESC --output-format json | jq -r '.[0].run_id')" >> $GITHUB_ENV
 
-    - name: Save Model Artifacts
+    - name: Download Artifacts and Check Metrics
+      working-directory: ./MLProject
+      shell: bash -l {0}
+      run: |
+        mlflow artifacts download -r ${{ env.LATEST_RUN_ID }} --dst-path ./artifacts
+        cat ./artifacts/metrics.json
+        METRIC=$(jq '.accuracy' ./artifacts/metrics.json)
+        echo "Model Accuracy: $METRIC"
+        if (( $(echo "$METRIC < 0.85" | bc -l) )); then
+          echo "Model accuracy is too low. Failing pipeline."
+          exit 1
+        fi
+
+    - name: Prepare Artifacts
       shell: bash -l {0}
       working-directory: ./MLProject
       run: |
-        mlflow artifacts download -r ${{ env.LATEST_RUN_ID }} --dst-path ./artifacts
-        
         mkdir -p model_artifacts
         cp -r artifacts/* model_artifacts/
         cp model.pkl model_artifacts/ 2>/dev/null || true
-        cp metrics.json model_artifacts/ 2>/dev/null || true
-
-        # Buat metadata file
         echo "{\"run_id\": \"${{ env.LATEST_RUN_ID }}\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\", \"model_name\": \"BreastCancer_RF_Model\"}" > model_artifacts/metadata.json
-
-        # Zip model_artifacts sebelum upload ke Google Drive
         zip -r model_artifacts.zip model_artifacts
 
     - name: Upload Artifacts to GitHub
@@ -78,40 +83,19 @@ jobs:
     - name: Generate MLflow Dockerfile
       shell: bash -l {0}
       working-directory: ./MLProject
-      env:
-        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
-        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+      run: mlflow models generate-dockerfile -m runs:/${{ env.LATEST_RUN_ID }}/model -d ./docker_mlflow
+
+    - name: Build and Push Docker Images
       run: |
-        mlflow models generate-dockerfile -m runs:/${{ env.LATEST_RUN_ID }}/model -d ./docker_mlflow
-
-    - name: Build MLflow Docker Image
-      working-directory: ./MLProject/docker_mlflow
-      run: docker build -t breast-cancer-mlflow:latest .
-
-    - name: Build Custom API Docker Image (fallback)
-      working-directory: ./MLProject
-      run: docker build -t breast-cancer-api:latest .
-
-    - name: Log in to Docker Hub
-      run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-
-    - name: Push Docker Images to Docker Hub
-      run: |
-        docker tag breast-cancer-mlflow:latest ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:latest
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:latest ./MLProject/docker_mlflow
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/breast-cancer-api:latest ./MLProject
+        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
         docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:latest
-        docker tag breast-cancer-api:latest ${{ secrets.DOCKER_USERNAME }}/breast-cancer-api:latest
         docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-api:latest
-        docker tag breast-cancer-mlflow:latest ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:${{ github.sha }}
-        docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:${{ github.sha }}
 
-    - name: Test MLflow Model Serving
+    - name: Test Model Serving
       shell: bash -l {0}
       working-directory: ./MLProject
-      env:
-        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
-        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
         mlflow models serve -m runs:/${{ env.LATEST_RUN_ID }}/model -h 0.0.0.0 -p 5000 &
         SERVER_PID=$!
@@ -127,34 +111,10 @@ jobs:
       run: |
         cat > SERVING_GUIDE.md << EOF
         # Model Serving Guide
-        
-        ## MLflow Serving (Recommended)
-        \`\`\`bash
+        ## MLflow Serving
         mlflow models serve -m runs/${{ env.LATEST_RUN_ID }}/model -h 0.0.0.0 -p 5000
-        \`\`\`
-        
         ## Docker Serving
-        \`\`\`bash
         docker run -p 5000:8080 ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:latest
-        \`\`\`
-        
-        ## API Testing
-        \`\`\`bash
-        curl -X POST -H "Content-Type: application/json" \
-          -d '{"dataframe_split": {"columns": ["mean_radius", "mean_texture", "mean_perimeter", "mean_area", "mean_smoothness"], "data": [[14.0, 19.0, 94.0, 594.0, 0.09]]}}' \
-          http://localhost:5000/invocations
-        \`\`\`
-        
-        ## Model Info
-        - Run ID: ${{ env.LATEST_RUN_ID }}
-        - Model Registry: BreastCancer_RF_Model
-        - Docker Images: 
-          - MLflow Standard: ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:latest
-          - Custom API: ${{ secrets.DOCKER_USERNAME }}/breast-cancer-api:latest
+        ## Test with curl
+        curl -X POST -H "Content-Type: application/json" -d '{"dataframe_split": {"columns": ["mean_radius", "mean_texture", "mean_perimeter", "mean_area", "mean_smoothness"], "data": [[14.0, 19.0, 94.0, 594.0, 0.09]]}}' http://localhost:5000/invocations
         EOF
-
-    - name: Upload Serving Documentation
-      uses: actions/upload-artifact@v4
-      with:
-        name: serving-documentation
-        path: MLProject/SERVING_GUIDE.md
