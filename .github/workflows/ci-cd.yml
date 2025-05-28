@@ -58,7 +58,7 @@ jobs:
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
         mlflow run . -P n_estimators=150 -P max_depth=12
-        LATEST_RUN_ID=$(mlflow runs list --experiment-name BreastCancer_RF_Model --max-results 1 --order-by start_time DESC --output-format json | jq -r '.[0].run_id')
+        LATEST_RUN_ID=$(mlflow runs list --experiment-id 1 --max-results 1 --order-by start_time DESC --output-format json | jq -r '.[0].run_id')
         if [ -z "$LATEST_RUN_ID" ]; then
           echo "No runs found. Exiting..."
           exit 1
