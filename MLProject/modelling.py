@@ -35,7 +35,6 @@ def train_evaluate_model(X_train, y_train, X_test, y_test, n_estimators, max_dep
         "f1_score": f1_score(y_test, predictions, average='weighted', zero_division=0)
     }
 
-    # Tambahkan handling untuk multiclass dan error
     try:
         if len(set(y_test)) == 2:
             metrics["roc_auc"] = roc_auc_score(y_test, model.predict_proba(X_test)[:, 1])
@@ -51,46 +50,52 @@ def save_metrics(metrics, filepath="metrics.json"):
         json.dump(metrics, f, indent=2)
 
 def main(n_estimators, max_depth):
-    mlflow.set_experiment("BreastCancer_RF_Model")
-    X_train, X_test, y_train, y_test = load_data()
+    try:
+        mlflow.set_tracking_uri("http://localhost:5000")
+        os.environ.pop("MLFLOW_RUN_ID", None)
+        experiment_name = "BreastCancer_RF_Model"
+        mlflow.set_experiment(experiment_name)
+        current_experiment = mlflow.get_experiment_by_name(experiment_name)
+        if current_experiment is None:
+            raise ValueError(f"Experiment '{experiment_name}' does not exist.")
 
-    with mlflow.start_run(run_name=f"RandomForest_n{n_estimators}_d{max_depth}") as run:
-        model, metrics, predictions = train_evaluate_model(X_train, y_train, X_test, y_test, n_estimators, max_depth)
+        X_train, X_test, y_train, y_test = load_data()
 
-        mlflow.log_params({
-            "n_estimators": n_estimators, 
-            "max_depth": max_depth, 
-            "model_type": "RandomForestClassifier"
-        })
-        mlflow.log_metrics(metrics)
+        with mlflow.start_run(run_name=f"RandomForest_n{n_estimators}_d{max_depth}") as run:
+            model, metrics, predictions = train_evaluate_model(X_train, y_train, X_test, y_test, n_estimators, max_depth)
 
-        signature = infer_signature(X_train, model.predict(X_train))
-        mlflow.sklearn.log_model(
-            sk_model=model,
-            artifact_path="model",
-            registered_model_name="BreastCancer_RF_Model",
-            input_example=X_train.iloc[:5],
-            signature=signature
-        )
+            mlflow.log_params({
+                "n_estimators": n_estimators, 
+                "max_depth": max_depth, 
+                "model_type": "RandomForestClassifier"
+            })
+            mlflow.log_metrics(metrics)
 
-        # Simpan model dan metrik
-        model_filename = "model.pkl"
-        joblib.dump(model, model_filename)
-        mlflow.log_artifact(model_filename)
+            signature = infer_signature(X_train, model.predict(X_train))
+            mlflow.sklearn.log_model(
+                sk_model=model,
+                artifact_path="model",
+                registered_model_name=experiment_name,
+                input_example=X_train.iloc[:5],
+                signature=signature
+            )
 
-        metrics_filename = "metrics.json"
-        save_metrics(metrics, metrics_filename)
-        mlflow.log_artifact(metrics_filename)
+            model_filename = "model.pkl"
+            joblib.dump(model, model_filename)
+            mlflow.log_artifact(model_filename)
 
-        # Print hasil evaluasi
-        print("Model trained successfully!")
-        for k, v in metrics.items():
-            if v is not None:
-                print(f"{k}: {v:.4f}")
-            else:
-                print(f"{k}: N/A")
-        print(f"Run ID: {run.info.run_id}")
-        print(f"Model URI: runs:/{run.info.run_id}/model")
+            metrics_filename = "metrics.json"
+            save_metrics(metrics, metrics_filename)
+            mlflow.log_artifact(metrics_filename)
+
+            print("Model trained successfully!")
+            for k, v in metrics.items():
+                print(f"{k}: {v:.4f}" if v is not None else f"{k}: N/A")
+            print(f"Run ID: {run.info.run_id}")
+            print(f"Model URI: runs:/{run.info.run_id}/model")
+    except Exception as e:
+        print(f"Error occurred in main(): {e}")
+        raise
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -98,8 +103,4 @@ if __name__ == "__main__":
     parser.add_argument("--max_depth", type=int, default=10, help="Maximum depth of the trees.")
     args = parser.parse_args()
 
-    try:
-        main(args.n_estimators, args.max_depth)
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        raise
+    main(args.n_estimators, args.max_depth)
