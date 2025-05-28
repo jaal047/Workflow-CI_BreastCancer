@@ -38,11 +38,22 @@ jobs:
       run: |
         pip install mlflow dagshub jq
 
+    - name: Start MLflow Tracking Server
+      working-directory: ./MLProject
+      shell: bash -l {0}
+      run: |
+        nohup mlflow server \
+          --backend-store-uri sqlite:///mlflow.db \
+          --default-artifact-root ./mlruns \
+          --host 0.0.0.0 \
+          --port 5000 > mlflow_server.log 2>&1 &
+        echo "MLflow server started"
+
     - name: Train Model using MLflow Project
       working-directory: ./MLProject
       shell: bash -l {0}
       env:
-        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        MLFLOW_TRACKING_URI: http://localhost:5000
         MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
@@ -53,6 +64,12 @@ jobs:
           exit 1
         fi
         echo "LATEST_RUN_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
+
+    - name: Stop MLflow Tracking Server
+      if: always()
+      run: |
+        pkill -f "mlflow server" || true
+        echo "MLflow server stopped"
 
     - name: Download Artifacts and Check Metrics
       working-directory: ./MLProject
