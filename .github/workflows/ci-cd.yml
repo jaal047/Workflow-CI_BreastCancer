@@ -58,15 +58,26 @@ jobs:
         MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
+        EXPERIMENT_NAME="BreastCancerExperiment"
+        EXPERIMENT_ID=$(mlflow experiments list | grep -w "$EXPERIMENT_NAME" | awk '{print $1}')
+
+        if [ -z "$EXPERIMENT_ID" ]; then
+          echo "Experiment $EXPERIMENT_NAME not found. Creating it."
+          mlflow experiments create --experiment-name "$EXPERIMENT_NAME"
+          EXPERIMENT_ID=$(mlflow experiments list | grep -w "$EXPERIMENT_NAME" | awk '{print $1}')
+        fi
+
         mlflow run . -P n_estimators=150 -P max_depth=12
-        LATEST_RUN_ID=$(mlflow runs list --experiment-id 1 | awk 'NR==2 {print $1}')
+        LATEST_RUN_ID=$(mlflow runs list --experiment-id "$EXPERIMENT_ID" | awk 'NR==2 {print $1}')
+
         if [ -z "$LATEST_RUN_ID" ] || [[ "$LATEST_RUN_ID" == *Date* ]]; then
           echo "No valid runs found. Debugging information:"
-          mlflow runs list --experiment-id 1
+          mlflow runs list --experiment-id "$EXPERIMENT_ID"
           echo "MLflow server logs:"
           cat mlflow_server.log
           exit 1
         fi
+
         echo "LATEST_RUN_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
 
     - name: Download Artifacts and Check Metrics
