@@ -106,22 +106,29 @@ jobs:
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
         EXPERIMENT_NAME="BreastCancerExperiment"
-        # Cek kolom nama experiment
         EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
         if [ -z "$EXPERIMENT_ID" ]; then
-          EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$3 == name {print $1}')
+          echo "Experiment $EXPERIMENT_NAME not found. Creating it."
+          if ! mlflow experiments create --experiment-name "$EXPERIMENT_NAME"; then
+            echo "Experiment creation failed. Debug info:"
+            mlflow experiments list
+            cat mlflow_server.log
+            exit 1
+          fi
+          EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
         fi
         if [ -z "$EXPERIMENT_ID" ]; then
-          echo "EXPERIMENT_ID kosong, workflow dihentikan."
-          mlflow experiments search
+          echo "Failed to retrieve or create experiment. Exiting."
           exit 1
         fi
-        echo "EXPERIMENT_ID=$EXPERIMENT_ID"
+
+        echo "EXPERIMENT_ID: $EXPERIMENT_ID"
         mlflow runs list --experiment-id $EXPERIMENT_ID
-        # Ambil run id dari baris ke-3 (baris pertama setelah header)
-        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXPERIMENT_ID | awk 'NR==3 {print $1}')
-        if [ -z "$LATEST_RUN_ID" ]; then
-          echo "Run ID kosong, workflow dihentikan."
+
+        # Perbaikan parsing Run ID
+        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXPERIMENT_ID | awk 'NF && !/^-+/ && !/^Date/ {print $NF}' | head -n 1)
+        if [ -z "$LATEST_RUN_ID" ] || [[ "$LATEST_RUN_ID" =~ ^[-]+$ ]]; then
+          echo "Tidak ada run ID ditemukan atau run ID tidak valid. Pastikan MLflow run benar-benar sukses dijalankan."
           mlflow runs list --experiment-id $EXPERIMENT_ID
           cat mlflow_server.log
           exit 1
