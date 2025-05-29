@@ -92,7 +92,21 @@ jobs:
       run: |
         EXPERIMENT_NAME="BreastCancerExperiment"
         EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
-        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXPERIMENT_ID --order-by start_time desc --max-results 1 | awk 'NR==2 {print $1}')
+        if [ -z "$EXPERIMENT_ID" ]; then
+          echo "Experiment $EXPERIMENT_NAME not found. Creating it."
+          if ! mlflow experiments create --experiment-name "$EXPERIMENT_NAME"; then
+            echo "Experiment creation failed. Exiting."
+            exit 1
+          fi
+          EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
+        fi
+        if [ -z "$EXPERIMENT_ID" ]; then
+          echo "Failed to retrieve or create experiment. Exiting."
+          exit 1
+        fi
+
+        # Corrected Command to Retrieve Latest Run ID
+        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXPERIMENT_ID | awk 'NR==2 {print $1}')
         if [ -z "$LATEST_RUN_ID" ]; then
           echo "Failed to retrieve the latest run ID. Exiting."
           exit 1
