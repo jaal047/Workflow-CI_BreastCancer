@@ -121,9 +121,12 @@ jobs:
           exit 1
         fi
 
+        echo "EXPERIMENT_ID: $EXPERIMENT_ID"
+        mlflow runs list --experiment-id $EXPERIMENT_ID
+
         LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXPERIMENT_ID | awk 'NR==2 {print $1}')
-        if [ -z "$LATEST_RUN_ID" ]; then
-          echo "Tidak ada run ID ditemukan. Pastikan MLflow run benar-benar sukses dijalankan."
+        if [ -z "$LATEST_RUN_ID" ] || [[ "$LATEST_RUN_ID" =~ ^[-]+$ ]]; then
+          echo "Tidak ada run ID ditemukan atau run ID tidak valid. Pastikan MLflow run benar-benar sukses dijalankan."
           mlflow runs list --experiment-id $EXPERIMENT_ID
           cat mlflow_server.log
           exit 1
