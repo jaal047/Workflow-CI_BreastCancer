@@ -41,12 +41,21 @@ jobs:
         pip install --upgrade mlflow dagshub jq
         mlflow --version || { echo "MLflow installation failed"; exit 1; }
 
+    - name: Setup PostgreSQL
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y postgresql postgresql-contrib
+        sudo systemctl start postgresql
+        sudo -u postgres psql -c "CREATE DATABASE mlflow_db;"
+        sudo -u postgres psql -c "CREATE USER mlflow_user WITH PASSWORD 'mlflow_pass';"
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE mlflow_db TO mlflow_user;"
+
     - name: Start MLflow Tracking Server
       working-directory: ./MLProject
       shell: bash -l {0}
       run: |
         nohup mlflow server \
-          --backend-store-uri sqlite:///mlflow.db \
+          --backend-store-uri postgresql://mlflow_user:mlflow_pass@localhost/mlflow_db \
           --default-artifact-root $(pwd)/mlruns \
           --host 0.0.0.0 \
           --port 5000 > mlflow_server.log 2>&1 &
@@ -97,7 +106,15 @@ jobs:
 
         echo "EXPERIMENT_ID=$EXPERIMENT_ID"
         echo "Running MLflow Project..."
-        mlflow run . -P n_estimators=150 -P max_depth=12 || {
+        mlflow run . -P n_estimators=150 -P max_depth=12 --env-manager=local || {
+          echo "MLflow run failed. Debugging logs:"
+          cat mlflow_server.log
+          exit 1
+        }
+        
+        # Register model
+        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXPERIMENT_ID --limit 1 | awk 'NR==3 {print $NF}')
+        mlflow models register --model-name BreastCancer_RF_Model --run-id $LATEST_RUN_ID
           echo "MLflow run failed. Debugging logs:"
           cat mlflow_server.log
           exit 1
@@ -213,9 +230,20 @@ jobs:
 
     - name: Build and Push Docker Images
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:latest ./MLProject/docker_mlflow
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/breast-cancer-api:latest ./MLProject
+        # Build MLflow serving image from registered model
+        mlflow models build-docker -m "models:/BreastCancer_RF_Model/Production" -n ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:${{ github.sha }}
+        
+        # Build custom API image
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/breast-cancer-api:${{ github.sha }} ./MLProject
+        
+        # Login and push with versioned tags
         echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:${{ github.sha }}
+        docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-api:${{ github.sha }}
+        
+        # Add latest tags
+        docker tag ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:latest
+        docker tag ${{ secrets.DOCKER_USERNAME }}/breast-cancer-api:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/breast-cancer-api:latest
         docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-mlflow:latest
         docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-api:latest
 

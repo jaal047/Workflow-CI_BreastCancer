@@ -77,8 +77,11 @@ def main(n_estimators, max_depth):
                 artifact_path="model",
                 registered_model_name=experiment_name,
                 input_example=X_train.iloc[:5],
-                signature=signature
+                signature=signature,
+                registered_model_name="BreastCancer_RF_Model"
             )
+            model_uri = f"runs:/{run.info.run_id}/model"
+            mlflow.register_model(model_uri, "BreastCancer_RF_Model")
 
             model_filename = "model.pkl"
             joblib.dump(model, model_filename)

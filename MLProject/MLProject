@@ -12,8 +12,8 @@ entry_points:
   
   serve:
     command: >
-      mlflow models serve -m models:/BreastCancer_RF_Model/latest -h 0.0.0.0 -p 5000
+      mlflow models serve -m models:/BreastCancer_RF_Model/Production -h 0.0.0.0 -p 5000
   
   build_docker:
     command: >
-      mlflow models build-docker -m models:/BreastCancer_RF_Model/latest -n breast-cancer-mlflow
+      mlflow models build-docker -m models:/BreastCancer_RF_Model/Production -n breast-cancer-mlflow
