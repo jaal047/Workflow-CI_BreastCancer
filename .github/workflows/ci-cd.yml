@@ -135,13 +135,17 @@ jobs:
         fi
         echo "LATEST_RUN_ID=$LATEST_RUN_ID"
         echo "LATEST_RUN_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
-        
+
     - name: Debug cek isi mlruns
       working-directory: ./MLProject
       shell: bash -l {0}
       run: |
         echo "Isi folder mlruns:"
         ls -R mlruns
+
+    - name: Cek MLflow Run Status
+      run: |
+        mlflow runs list --experiment-id $EXPERIMENT_ID
 
     - name: Download Artifacts and Check Metrics
       working-directory: ./MLProject
