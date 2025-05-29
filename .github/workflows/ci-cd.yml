@@ -32,6 +32,8 @@ jobs:
           ~/.cache/pip
           ~/.conda
         key: ${{ runner.os }}-conda-pip-${{ hashFiles('MLProject/conda.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-conda-pip
 
     - name: Install MLflow and dependencies
       shell: bash -l {0}
@@ -60,17 +62,18 @@ jobs:
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
         EXPERIMENT_NAME="BreastCancerExperiment"
-        echo "All available experiments:"
-        mlflow experiments search
-        EXPERIMENT_ID=$(mlflow experiments search | grep -w "$EXPERIMENT_NAME" | awk '{print $1}')
+        EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
         if [ -z "$EXPERIMENT_ID" ]; then
           echo "Experiment $EXPERIMENT_NAME not found. Creating it."
-          mlflow experiments create --experiment-name "$EXPERIMENT_NAME"
-          EXPERIMENT_ID=$(mlflow experiments search | grep -w "$EXPERIMENT_NAME" | awk '{print $1}')
-          if [ -z "$EXPERIMENT_ID" ]; then
-            echo "Failed to create experiment. Exiting."
+          if ! mlflow experiments create --experiment-name "$EXPERIMENT_NAME"; then
+            echo "Experiment creation failed. Exiting."
             exit 1
           fi
+          EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
+        fi
+        if [ -z "$EXPERIMENT_ID" ]; then
+          echo "Failed to retrieve or create experiment. Exiting."
+          exit 1
         fi
         echo "EXPERIMENT_ID=$EXPERIMENT_ID"
         echo "Running MLflow Project..."
