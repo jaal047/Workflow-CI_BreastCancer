@@ -60,10 +60,12 @@ jobs:
           sleep 3
         done
         if ! curl -I http://localhost:5000 2>/dev/null | grep "200 OK"; then
-          echo "MLflow server failed to start"
-          cat mlflow_server.log
-          exit 1
-        fi
+           echo "MLflow server failed to start. Debugging logs:"
+           cat mlflow_server.log
+           netstat -tuln
+           ps aux | grep mlflow
+           exit 1
+         fi
 
     - name: Train Model using MLflow Project
       working-directory: ./MLProject
