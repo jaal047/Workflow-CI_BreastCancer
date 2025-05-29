@@ -53,7 +53,7 @@ def main(n_estimators, max_depth):
     try:
         mlflow.set_tracking_uri("http://localhost:5000")
         os.environ.pop("MLFLOW_RUN_ID", None)
-        experiment_name = "BreastCancer_RF_Model"
+        experiment_name = "BreastCancerExperiment"
         mlflow.set_experiment(experiment_name)
         current_experiment = mlflow.get_experiment_by_name(experiment_name)
         if current_experiment is None:
