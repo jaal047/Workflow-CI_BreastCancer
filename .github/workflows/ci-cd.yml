@@ -74,6 +74,7 @@ jobs:
         MLFLOW_TRACKING_URI: http://localhost:5000
         MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+        MLFLOW_EXPERIMENT_NAME: BreastCancerExperiment
       run: |
         EXPERIMENT_NAME="BreastCancerExperiment"
         EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
