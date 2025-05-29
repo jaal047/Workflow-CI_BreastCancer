@@ -82,6 +82,23 @@ jobs:
           cat mlflow_server.log
           exit 1
         }
+    - name: Set Latest Run ID
+      working-directory: ./MLProject
+      shell: bash -l {0}
+      env:
+        MLFLOW_TRACKING_URI: http://localhost:5000
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+      run: |
+        EXPERIMENT_NAME="BreastCancerExperiment"
+        EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
+        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXPERIMENT_ID --order-by start_time desc --max-results 1 | awk 'NR==2 {print $1}')
+        if [ -z "$LATEST_RUN_ID" ]; then
+          echo "Failed to retrieve the latest run ID. Exiting."
+          exit 1
+        fi
+        echo "LATEST_RUN_ID=$LATEST_RUN_ID"
+        echo "LATEST_RUN_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
 
     - name: Download Artifacts and Check Metrics
       working-directory: ./MLProject
