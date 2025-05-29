@@ -59,9 +59,9 @@ jobs:
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
         mlflow run . -P n_estimators=150 -P max_depth=12
-        LATEST_RUN_ID=$(mlflow runs list --experiment-id 1 | awk 'END{print $1}')
-        if [ -z "$LATEST_RUN_ID" ]; then
-          echo "No runs found. Exiting..."
+        LATEST_RUN_ID=$(mlflow runs list --experiment-id 1 | awk 'NR==2 {print $1}')
+        if [ -z "$LATEST_RUN_ID" ] || [[ "$LATEST_RUN_ID" == *Date* ]]; then
+          echo "No valid runs found. Exiting..."
           exit 1
         fi
         echo "LATEST_RUN_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
