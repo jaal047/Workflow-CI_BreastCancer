@@ -99,7 +99,7 @@ jobs:
         }
     - name: Set Latest Run ID
       working-directory: ./MLProject
-      shell: bash -l {0}
+      shell: conda run -n breast_cancer_env bash -e {0}
       env:
         MLFLOW_TRACKING_URI: http://localhost:5000
         MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
@@ -138,18 +138,19 @@ jobs:
 
     - name: Debug cek isi mlruns
       working-directory: ./MLProject
-      shell: bash -l {0}
+      shell: conda run -n breast_cancer_env bash -e {0}
       run: |
         echo "Isi folder mlruns:"
         ls -R mlruns
 
     - name: Cek MLflow Run Status
+      shell: conda run -n breast_cancer_env bash -e {0}
       run: |
         mlflow runs list --experiment-id $EXPERIMENT_ID
 
     - name: Download Artifacts and Check Metrics
       working-directory: ./MLProject
-      shell: bash -l {0}
+      shell: conda run -n breast_cancer_env bash -e {0}
       run: |
         if [ -z "${{ env.LATEST_RUN_ID }}" ]; then
             echo "LATEST_RUN_ID is not set. Exiting."
@@ -199,6 +200,7 @@ jobs:
 
     - name: Generate MLflow Dockerfile
       working-directory: ./MLProject
+      shell: conda run -n breast_cancer_env bash -e {0}
       run: mlflow models generate-dockerfile -m runs:/${{ env.LATEST_RUN_ID }}/model -d ./docker_mlflow
 
     - name: Build and Push Docker Images
@@ -211,6 +213,7 @@ jobs:
 
     - name: Test Model Serving
       working-directory: ./MLProject
+      shell: conda run -n breast_cancer_env bash -e {0}
       run: |
         mlflow models serve -m runs:/${{ env.LATEST_RUN_ID }}/model -h 0.0.0.0 -p 5000 &
         SERVER_PID=$!
