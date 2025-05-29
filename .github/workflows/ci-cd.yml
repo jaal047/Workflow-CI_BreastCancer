@@ -126,7 +126,7 @@ jobs:
         mlflow runs list --experiment-id $EXPERIMENT_ID
 
         # Perbaikan parsing Run ID
-        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXPERIMENT_ID | awk 'NF && !/^-+/ && !/^Date/ {print $3}' | head -n 1)
+        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXPERIMENT_ID | awk 'NF && !/^-+/ && !/^Date/ {print $NF}' | head -n 1)
         if [ -z "$LATEST_RUN_ID" ] || [[ "$LATEST_RUN_ID" =~ ^[-]+$ ]]; then
           echo "Tidak ada run ID ditemukan atau run ID tidak valid. Pastikan MLflow run benar-benar sukses dijalankan."
           mlflow runs list --experiment-id $EXPERIMENT_ID
