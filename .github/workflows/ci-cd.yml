@@ -69,12 +69,6 @@ jobs:
         fi
         echo "LATEST_RUN_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
 
-    - name: Stop MLflow Tracking Server
-      if: always()
-      run: |
-        pkill -f "mlflow server" || true
-        echo "MLflow server stopped"
-
     - name: Download Artifacts and Check Metrics
       working-directory: ./MLProject
       shell: bash -l {0}
