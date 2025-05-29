@@ -48,7 +48,8 @@ jobs:
           --default-artifact-root ./mlruns \
           --host 0.0.0.0 \
           --port 5000 > mlflow_server.log 2>&1 &
-        echo "MLflow server started"
+        sleep 5
+        curl -I http://localhost:5000 || { echo "MLflow server failed to start"; exit 1; }
 
     - name: Train Model using MLflow Project
       working-directory: ./MLProject
@@ -60,15 +61,16 @@ jobs:
       run: |
         EXPERIMENT_NAME="BreastCancerExperiment"
         EXPERIMENT_ID=$(mlflow experiments search | grep -w "$EXPERIMENT_NAME" | awk '{print $1}')
-
         if [ -z "$EXPERIMENT_ID" ]; then
           echo "Experiment $EXPERIMENT_NAME not found. Creating it."
           mlflow experiments create --experiment-name "$EXPERIMENT_NAME"
           EXPERIMENT_ID=$(mlflow experiments search | grep -w "$EXPERIMENT_NAME" | awk '{print $1}')
         fi
+        echo "EXPERIMENT_ID=$EXPERIMENT_ID"
 
         mlflow run . -P n_estimators=150 -P max_depth=12
         LATEST_RUN_ID=$(mlflow runs search --experiment-id "$EXPERIMENT_ID" | awk 'NR==2 {print $1}')
+        echo "LATEST_RUN_ID=$LATEST_RUN_ID"
 
         if [ -z "$LATEST_RUN_ID" ] || [[ "$LATEST_RUN_ID" == *Date* ]]; then
           echo "No valid runs found. Debugging information:"
@@ -77,7 +79,6 @@ jobs:
           cat mlflow_server.log
           exit 1
         fi
-
         echo "LATEST_RUN_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
 
     - name: Download Artifacts and Check Metrics
