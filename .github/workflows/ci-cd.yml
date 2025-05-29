@@ -78,35 +78,7 @@ jobs:
       run: |
         EXPERIMENT_NAME="BreastCancerExperiment"
         EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
-        if [ -z "$EXPERIMENT_ID" ]; then
-          echo "Experiment $EXPERIMENT_NAME not found. Creating it."
-          if ! mlflow experiments create --experiment-name "$EXPERIMENT_NAME"; then
-            echo "Experiment creation failed. Exiting."
-            exit 1
-          fi
-          EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
-        fi
-        if [ -z "$EXPERIMENT_ID" ]; then
-          echo "Failed to retrieve or create experiment. Exiting."
-          exit 1
-        fi
-        echo "EXPERIMENT_ID=$EXPERIMENT_ID"
-        echo "Running MLflow Project..."
-        mlflow run . -P n_estimators=150 -P max_depth=12 || {
-          echo "MLflow run failed. Debugging logs:"
-          cat mlflow_server.log
-          exit 1
-        }
-    - name: Set Latest Run ID
-      working-directory: ./MLProject
-      shell: conda run -n breast_cancer_env bash -e {0}
-      env:
-        MLFLOW_TRACKING_URI: http://localhost:5000
-        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
-        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
-      run: |
-        EXPERIMENT_NAME="BreastCancerExperiment"
-        EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
+
         if [ -z "$EXPERIMENT_ID" ]; then
           echo "Experiment $EXPERIMENT_NAME not found. Creating it."
           if ! mlflow experiments create --experiment-name "$EXPERIMENT_NAME"; then
@@ -117,6 +89,42 @@ jobs:
           fi
           EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
         fi
+
+        if [ -z "$EXPERIMENT_ID" ]; then
+          echo "Failed to retrieve or create experiment. Exiting."
+          exit 1
+        fi
+
+        echo "EXPERIMENT_ID=$EXPERIMENT_ID"
+        echo "Running MLflow Project..."
+        mlflow run . -P n_estimators=150 -P max_depth=12 || {
+          echo "MLflow run failed. Debugging logs:"
+          cat mlflow_server.log
+          exit 1
+        }
+
+    - name: Set Latest Run ID
+      working-directory: ./MLProject
+      shell: conda run -n breast_cancer_env bash -e {0}
+      env:
+        MLFLOW_TRACKING_URI: http://localhost:5000
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+      run: |
+        EXPERIMENT_NAME="BreastCancerExperiment"
+        EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
+
+        if [ -z "$EXPERIMENT_ID" ]; then
+          echo "Experiment $EXPERIMENT_NAME not found. Creating it."
+          if ! mlflow experiments create --experiment-name "$EXPERIMENT_NAME"; then
+            echo "Experiment creation failed. Debug info:"
+            mlflow experiments list
+            cat mlflow_server.log
+            exit 1
+          fi
+          EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
+        fi
+
         if [ -z "$EXPERIMENT_ID" ]; then
           echo "Failed to retrieve or create experiment. Exiting."
           exit 1
