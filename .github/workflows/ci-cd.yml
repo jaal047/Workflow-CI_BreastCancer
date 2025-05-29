@@ -61,7 +61,10 @@ jobs:
         mlflow run . -P n_estimators=150 -P max_depth=12
         LATEST_RUN_ID=$(mlflow runs list --experiment-id 1 | awk 'NR==2 {print $1}')
         if [ -z "$LATEST_RUN_ID" ] || [[ "$LATEST_RUN_ID" == *Date* ]]; then
-          echo "No valid runs found. Exiting..."
+          echo "No valid runs found. Debugging information:"
+          mlflow runs list --experiment-id 1
+          echo "MLflow server logs:"
+          cat mlflow_server.log
           exit 1
         fi
         echo "LATEST_RUN_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
