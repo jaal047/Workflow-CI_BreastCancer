@@ -87,10 +87,19 @@ jobs:
       working-directory: ./MLProject
       shell: bash -l {0}
       run: |
-        if ! mlflow artifacts download --run-id ${{ env.LATEST_RUN_ID }} --artifact-path ./artifacts --dst-path ./artifacts; then
+        if [ -z "${{ env.LATEST_RUN_ID }}" ]; then
+            echo "LATEST_RUN_ID is not set. Exiting."
+            exit 1
+        fi
+
+        if ! mlflow artifacts download \
+          --run-id "${{ env.LATEST_RUN_ID }}" \
+          --artifact-path "artifacts" \
+          --dst-path "./artifacts"; then
             echo "Failed to download artifacts. Exiting."
             exit 1
         fi
+
         cat ./artifacts/metrics.json
         METRIC=$(jq '.accuracy' ./artifacts/metrics.json)
         echo "Model Accuracy: $METRIC"
