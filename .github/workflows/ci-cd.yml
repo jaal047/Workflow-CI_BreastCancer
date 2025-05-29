@@ -60,6 +60,11 @@ jobs:
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
         EXPERIMENT_NAME="BreastCancerExperiment"
+         
+        # Debugging experiment creation
+        echo "All available experiments:"
+        mlflow experiments search
+         
         EXPERIMENT_ID=$(mlflow experiments search | grep -w "$EXPERIMENT_NAME" | awk '{print $1}')
         if [ -z "$EXPERIMENT_ID" ]; then
           echo "Experiment $EXPERIMENT_NAME not found. Creating it."
@@ -67,11 +72,14 @@ jobs:
           EXPERIMENT_ID=$(mlflow experiments search | grep -w "$EXPERIMENT_NAME" | awk '{print $1}')
         fi
         echo "EXPERIMENT_ID=$EXPERIMENT_ID"
-
-        mlflow run . -P n_estimators=150 -P max_depth=12
+         
+        # Debugging MLflow run
+        echo "Running MLflow Project..."
+        mlflow run . -P n_estimators=150 -P max_depth=12 || { echo "MLflow run failed"; exit 1; }
+         
         LATEST_RUN_ID=$(mlflow runs search --experiment-id "$EXPERIMENT_ID" | awk 'NR==2 {print $1}')
         echo "LATEST_RUN_ID=$LATEST_RUN_ID"
-
+         
         if [ -z "$LATEST_RUN_ID" ] || [[ "$LATEST_RUN_ID" == *Date* ]]; then
           echo "No valid runs found. Debugging information:"
           mlflow runs search --experiment-id "$EXPERIMENT_ID"
