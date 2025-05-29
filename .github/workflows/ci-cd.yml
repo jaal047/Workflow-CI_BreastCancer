@@ -50,8 +50,20 @@ jobs:
           --default-artifact-root ./mlruns \
           --host 0.0.0.0 \
           --port 5000 > mlflow_server.log 2>&1 &
-        sleep 5
-        curl -I http://localhost:5000 || { echo "MLflow server failed to start"; exit 1; }
+        # Ubah bagian sleep menjadi pengecekan berulang
+        for i in {1..10}; do
+          if curl -I http://localhost:5000 2>/dev/null | grep "200 OK"; then
+            echo "MLflow server is up!"
+            break
+          fi
+          echo "Waiting for MLflow server..."
+          sleep 3
+        done
+        if ! curl -I http://localhost:5000 2>/dev/null | grep "200 OK"; then
+          echo "MLflow server failed to start"
+          cat mlflow_server.log
+          exit 1
+        fi
 
     - name: Train Model using MLflow Project
       working-directory: ./MLProject
@@ -95,7 +107,9 @@ jobs:
         if [ -z "$EXPERIMENT_ID" ]; then
           echo "Experiment $EXPERIMENT_NAME not found. Creating it."
           if ! mlflow experiments create --experiment-name "$EXPERIMENT_NAME"; then
-            echo "Experiment creation failed. Exiting."
+            echo "Experiment creation failed. Debug info:"
+            mlflow experiments list
+            cat mlflow_server.log
             exit 1
           fi
           EXPERIMENT_ID=$(mlflow experiments search | awk -v name="$EXPERIMENT_NAME" '$2 == name {print $1}')
@@ -105,10 +119,11 @@ jobs:
           exit 1
         fi
 
-        # Corrected Command to Retrieve Latest Run ID
         LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXPERIMENT_ID | awk 'NR==2 {print $1}')
         if [ -z "$LATEST_RUN_ID" ]; then
-          echo "Failed to retrieve the latest run ID. Exiting."
+          echo "Tidak ada run ID ditemukan. Pastikan MLflow run benar-benar sukses dijalankan."
+          mlflow runs list --experiment-id $EXPERIMENT_ID
+          cat mlflow_server.log
           exit 1
         fi
         echo "LATEST_RUN_ID=$LATEST_RUN_ID"
