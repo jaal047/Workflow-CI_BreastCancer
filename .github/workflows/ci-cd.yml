@@ -23,12 +23,14 @@ jobs:
       uses: goanpeca/setup-miniconda@v2
       with:
         environment-file: MLProject/conda.yaml
+        auto-activate-base: false
         activate-environment: breast_cancer_env
 
     - name: Install dependencies
+      shell: bash -l {0}
       run: |
-        pip install mlflow
-        pip install dagshub
+        source $CONDA/bin/activate breast_cancer_env
+        pip install -r MLProject/requirements.txt
 
     - name: Run MLflow Training
       working-directory: ./MLProject
