@@ -19,9 +19,9 @@ args = parser.parse_args()
 
 # Load data
 X_train = pd.read_csv('BreastCancer_preprocessing/X_train.csv')
-X_test = pd.read_csv('MLProject/BreastCancer_preprocessing/X_test.csv')
-y_train = pd.read_csv('MLProject/BreastCancer_preprocessing/y_train.csv').values.ravel()
-y_test = pd.read_csv('MLProject/BreastCancer_preprocessing/y_test.csv').values.ravel()
+X_test = pd.read_csv('BreastCancer_preprocessing/X_test.csv')
+y_train = pd.read_csv('BreastCancer_preprocessing/y_train.csv').values.ravel()
+y_test = pd.read_csv('BreastCancer_preprocessing/y_test.csv').values.ravel()
 
 # Model Training
 with mlflow.start_run(run_name="BreastCancer_RF_Model"):
