@@ -18,7 +18,7 @@ parser.add_argument("--max_depth", type=int, default=10)
 args = parser.parse_args()
 
 # Load data
-X_train = pd.read_csv('MLProject/BreastCancer_preprocessing/X_train.csv')
+X_train = pd.read_csv('BreastCancer_preprocessing/X_train.csv')
 X_test = pd.read_csv('MLProject/BreastCancer_preprocessing/X_test.csv')
 y_train = pd.read_csv('MLProject/BreastCancer_preprocessing/y_train.csv').values.ravel()
 y_test = pd.read_csv('MLProject/BreastCancer_preprocessing/y_test.csv').values.ravel()
