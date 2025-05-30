@@ -1,0 +1,57 @@
+name: CI-CD Workflow
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Set up Miniconda
+      uses: goanpeca/setup-miniconda@v2
+      with:
+        environment-file: MLProject/conda.yaml
+        activate-environment: breast_cancer_env
+
+    - name: Install dependencies
+      run: |
+        pip install mlflow
+        pip install dagshub
+
+    - name: Run Modelling Script
+      working-directory: ./MLProject
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+      run: |
+        python modelling.py
+
+    - name: Build Docker Image
+      run: docker build -t breast-cancer-model:latest ./MLProject
+
+    - name: Log in to Docker Hub
+      run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+
+    - name: Push Docker Image to Docker Hub
+      run: |
+        docker tag breast-cancer-model:latest ${{ secrets.DOCKER_USERNAME }}/breast-cancer-model:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-model:latest
+
+    - name: Upload Model Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: breast-cancer-model-artifacts
+        path: MLProject/model.pkl
