@@ -30,17 +30,19 @@ jobs:
         pip install mlflow
         pip install dagshub
 
-    - name: Run Modelling Script
+    - name: Run MLflow Training
       working-directory: ./MLProject
+      id: mlflow_run
       env:
         MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
         MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
-        python modelling.py
+        mlflow run . -P data_dir=./BreastCancer_preprocessing --experiment-name BreastCancer-CI
+        echo "run_id=$(mlflow runs list --experiment-name BreastCancer-CI --limit 1 | awk 'NR==2 {print $NF}')" >> $GITHUB_OUTPUT
 
-    - name: Build Docker Image
-      run: docker build -t breast-cancer-model:latest ./MLProject
+    - name: Build MLflow Docker Image
+      run: mlflow models build-docker -m "runs:/${{ steps.mlflow_run.outputs.run_id }}/model" -n breast-cancer-model
 
     - name: Log in to Docker Hub
       run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
@@ -50,8 +52,8 @@ jobs:
         docker tag breast-cancer-model:latest ${{ secrets.DOCKER_USERNAME }}/breast-cancer-model:latest
         docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-model:latest
 
-    - name: Upload Model Artifacts
+    - name: Upload MLflow Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: breast-cancer-model-artifacts
-        path: MLProject/model.pkl
+        name: mlflow-artifacts
+        path: mlruns/
