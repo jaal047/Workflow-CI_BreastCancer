@@ -6,4 +6,4 @@ entry_points:
   main:
     parameters:
       data_dir: {type: string, default: "./BreastCancer_preprocessing"}
-    command: "python modelling.py --data-dir {data_dir}"
+    command: "conda activate breast_cancer_env && python modelling.py --data-dir {data_dir}"
