@@ -1,9 +1,11 @@
-name: BreastCancer_Classification
+name: BreastCancer_RF_Model
 
 conda_env: conda.yaml
 
 entry_points:
   main:
     parameters:
-      data_dir: {type: string, default: "./BreastCancer_preprocessing"}
-    command: "conda activate breast_cancer_env && python modelling.py --data-dir {data_dir}"
+      n_estimators: {type: int, default: 100}
+      max_depth: {type: int, default: 10}
+    command: >
+      python modelling.py --n_estimators {n_estimators} --max_depth {max_depth}

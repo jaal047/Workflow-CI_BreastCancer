@@ -23,28 +23,24 @@ jobs:
       uses: goanpeca/setup-miniconda@v2
       with:
         environment-file: MLProject/conda.yaml
-        auto-activate-base: false
         activate-environment: breast_cancer_env
 
     - name: Install dependencies
       run: |
-        conda run -n breast_cancer_env pip install -r MLProject/requirements.txt
+        pip install mlflow
+        pip install dagshub
 
-    - name: Run MLflow Training
+    - name: Run Modelling Script
       working-directory: ./MLProject
-      id: mlflow_run
       env:
         MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
         MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
-        conda run -n breast_cancer_env mlflow run . -P data_dir=./BreastCancer_preprocessing --experiment-name BreastCancer-CI
-        # Fetch experiment ID first
-        experiment_id=$(conda run -n breast_cancer_env mlflow experiments list --filter "name='BreastCancer-CI'" | jq -r '.[0].experiment_id')
-        echo "run_id=$(conda run -n breast_cancer_env mlflow runs list --experiment-id $experiment_id --limit 1 | jq -r '.[0].info.run_id')" >> $GITHUB_OUTPUT
+        python modelling.py
 
-    - name: Build MLflow Docker Image
-      run: mlflow models build-docker -m "runs:/${{ steps.mlflow_run.outputs.run_id }}/model" -n breast-cancer-model
+    - name: Build Docker Image
+      run: docker build -t breast-cancer-model:latest ./MLProject
 
     - name: Log in to Docker Hub
       run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
@@ -54,8 +50,8 @@ jobs:
         docker tag breast-cancer-model:latest ${{ secrets.DOCKER_USERNAME }}/breast-cancer-model:latest
         docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-model:latest
 
-    - name: Upload MLflow Artifacts
+    - name: Upload Model Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: mlflow-artifacts
-        path: mlruns/
+        name: breast-cancer-model-artifacts
+        path: MLProject/model.pkl

@@ -13,18 +13,19 @@ import json
 
 # Argument Parser
 parser = argparse.ArgumentParser()
-parser.add_argument("--data-dir", type=str, default="./BreastCancer_preprocessing")
+parser.add_argument("--n_estimators", type=int, default=100)
+parser.add_argument("--max_depth", type=int, default=10)
 args = parser.parse_args()
 
 # Load data
-X_train = pd.read_csv(f"{args.data_dir}/X_train.csv")
-X_test = pd.read_csv(f"{args.data_dir}/X_test.csv")
-y_train = pd.read_csv(f"{args.data_dir}/y_train.csv").values.ravel()
-y_test = pd.read_csv(f"{args.data_dir}/y_test.csv").values.ravel()
+X_train = pd.read_csv('BreastCancer_preprocessing/X_train.csv')
+X_test = pd.read_csv('BreastCancer_preprocessing/X_test.csv')
+y_train = pd.read_csv('BreastCancer_preprocessing/y_train.csv').values.ravel()
+y_test = pd.read_csv('BreastCancer_preprocessing/y_test.csv').values.ravel()
 
 # Model Training
-with mlflow.start_run():
-    model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
+with mlflow.start_run(run_name="BreastCancer_RF_Model"):
+    model = RandomForestClassifier(n_estimators=args.n_estimators, max_depth=args.max_depth, random_state=42)
     model.fit(X_train, y_train)
 
     # Evaluation
@@ -44,8 +45,8 @@ with mlflow.start_run():
     }
 
     # Log parameters and metrics
-    mlflow.log_param("n_estimators", 100)
-    mlflow.log_param("max_depth", 10)
+    mlflow.log_param("n_estimators", args.n_estimators)
+    mlflow.log_param("max_depth", args.max_depth)
     for key, value in metrics.items():
         mlflow.log_metric(key, value)
 
@@ -61,7 +62,9 @@ with mlflow.start_run():
         input_example=input_example
     )
 
-    # Hapus penyimpanan model manual
+    # Simpan model dengan joblib
+    joblib.dump(model, "model.pkl")
+    mlflow.log_artifact("model.pkl")
 
     # Simpan metrics ke JSON dan log
     with open("metrics.json", "w") as f:
