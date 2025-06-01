@@ -30,14 +30,10 @@ jobs:
         pip install mlflow
         pip install dagshub
 
-    - name: Run Modelling Script
+    - name: Run MLflow Training
       working-directory: ./MLProject
-      env:
-        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
-        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
-        python modelling.py
+        mlflow run . --entry-point train --experiment-name "Breast Cancer Experiment"
 
     - name: Build Docker Image
       run: docker build -t breast-cancer-model:latest ./MLProject
