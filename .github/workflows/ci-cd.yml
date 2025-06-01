@@ -33,7 +33,7 @@ jobs:
     - name: Run MLflow Training
       working-directory: ./MLProject
       run: |
-        mlflow run . --entry-point train --experiment-name "Breast Cancer Experiment"
+        mlflow run . --entry-point modelling --experiment-name "Breast Cancer Experiment"
 
     - name: Build Docker Image
       run: docker build -t breast-cancer-model:latest ./MLProject

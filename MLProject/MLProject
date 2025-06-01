@@ -1,11 +1,15 @@
-name: BreastCancer_RF_Model
-
-conda_env: conda.yaml
+name: Breast Cancer Project
 
 entry_points:
-  main:
-    parameters:
-      n_estimators: {type: int, default: 100}
-      max_depth: {type: int, default: 10}
-    command: >
-      python modelling.py --n_estimators {n_estimators} --max_depth {max_depth}
+  modelling:
+    command: "python modelling.py"
+
+conda:
+  channels:
+    - defaults
+    - conda-forge
+  dependencies:
+    - python=3.10
+    - pip
+    - mlflow
+    - scikit-learn
