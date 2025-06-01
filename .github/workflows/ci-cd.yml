@@ -27,8 +27,7 @@ jobs:
 
     - name: Verify Conda Environment Activation
       run: |
-        source ~/.bashrc   # Ensure the shell is initialized
-        conda init bash    # Initialize Conda for bash shell
+        eval "$(conda shell.bash hook)"
         conda activate breast_cancer_env
         conda info
         conda list
@@ -41,7 +40,7 @@ jobs:
         MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
-        mlflow run . -P data_path=BreastCancer_preprocessing
+        mlflow run . -P data_dir=BreastCancer_preprocessing
 
     - name: Build Docker Image
       run: docker build -t breast-cancer-model:latest ./MLProject
