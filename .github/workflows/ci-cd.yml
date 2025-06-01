@@ -25,16 +25,13 @@ jobs:
         environment-file: MLProject/conda.yaml
         activate-environment: breast_cancer_env
 
-    - name: Install dependencies
-      run: |
-        pip install mlflow
-        pip install dagshub
-
     - name: Verify Conda Environment Activation
       run: |
+        source ~/.bashrc   # Ensure the shell is initialized
+        conda init bash    # Initialize Conda for bash shell
+        conda activate breast_cancer_env
         conda info
         conda list
-        conda activate breast_cancer_env
         python --version
 
     - name: Run MLflow Project
@@ -71,4 +68,3 @@ jobs:
         files: MLProject/model.pkl
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
