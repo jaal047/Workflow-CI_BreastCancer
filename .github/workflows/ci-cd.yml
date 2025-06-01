@@ -30,6 +30,13 @@ jobs:
         pip install mlflow
         pip install dagshub
 
+    - name: Verify Conda Environment Activation
+      run: |
+        conda info
+        conda list
+        conda activate breast_cancer_env
+        python --version
+
     - name: Run MLflow Project
       working-directory: ./MLProject
       env:
@@ -37,7 +44,7 @@ jobs:
         MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
-        mlflow run . -P data_path=BreastCancer_preprocessing/dataset.csv
+        mlflow run . -P data_path=BreastCancer_preprocessing
 
     - name: Build Docker Image
       run: docker build -t breast-cancer-model:latest ./MLProject
@@ -55,3 +62,13 @@ jobs:
       with:
         name: breast-cancer-model-artifacts
         path: MLProject/model.pkl
+
+    - name: Upload model as GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v1.0.${{ github.run_number }}
+        name: "Model Release ${{ github.run_number }}"
+        files: MLProject/model.pkl
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
